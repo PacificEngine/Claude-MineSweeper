@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minesweeper</title>
+  </head>
+  <body>
+    <main>
+      <h1>Minesweeper</h1>
+      <div class="bar">
+        <select id="level" aria-label="Difficulty">
+          <option value="beginner">Beginner (9×9)</option>
+          <option value="intermediate">Intermediate (16×16)</option>
+          <option value="expert">Expert (30×16)</option>
+        </select>
+        <output id="mines" class="panel" aria-label="Mines remaining">010</output>
+        <button id="reset" type="button" aria-label="New game">🙂</button>
+        <output id="time" class="panel" aria-label="Seconds elapsed">000</output>
+      </div>
+      <div id="board" role="grid"></div>
+      <p id="msg">Left-click reveal · Right-click flag · Click a number (or middle-click) to chord</p>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

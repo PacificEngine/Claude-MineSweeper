@@ -1,0 +1,16 @@
+body { font-family: system-ui, sans-serif; background: #2b2f36; color: #eee; margin: 0; padding: 24px; user-select: none; }
+main { display: flex; flex-direction: column; align-items: center; }
+h1 { margin: 0 0 12px; font-size: 22px; }
+.bar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+select, button { font-size: 14px; padding: 6px 10px; border-radius: 6px; border: 1px solid #555; background: #3a3f48; color: #eee; cursor: pointer; }
+#reset { font-size: 20px; }
+.panel { background: #111; color: #f44; font: bold 20px monospace; padding: 4px 10px; border-radius: 4px; min-width: 52px; text-align: center; }
+#board { display: grid; gap: 2px; background: #1c1f24; padding: 6px; border-radius: 8px; }
+.cell { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; background: #5a6372; border-radius: 3px; cursor: pointer; }
+.cell:hover:not(.revealed) { background: #6b7587; }
+.cell.revealed { background: #d8dce3; cursor: default; }
+.cell.mine { background: #e5534b; }
+.cell.wrong { background: #e9a23b; }
+.n1 { color: #1976d2 } .n2 { color: #388e3c } .n3 { color: #d32f2f } .n4 { color: #303f9f }
+.n5 { color: #8d2a2a } .n6 { color: #00838f } .n7 { color: #222 } .n8 { color: #666 }
+#msg { margin-top: 12px; min-height: 24px; font-weight: 600; text-align: center; }

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minesweeper</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #2b2f36; color: #eee; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 24px; user-select: none; }
+  h1 { margin: 0 0 12px; font-size: 22px; }
+  .bar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  select, button { font-size: 14px; padding: 6px 10px; border-radius: 6px; border: 1px solid #555; background: #3a3f48; color: #eee; cursor: pointer; }
+  .panel { background: #111; color: #f44; font: bold 20px monospace; padding: 4px 10px; border-radius: 4px; min-width: 52px; text-align: center; }
+  #board { display: grid; gap: 2px; background: #1c1f24; padding: 6px; border-radius: 8px; }
+  .cell { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; background: #5a6372; border-radius: 3px; cursor: pointer; }
+  .cell:hover:not(.open) { background: #6b7587; }
+  .cell.open { background: #d8dce3; cursor: default; }
+  .cell.mine { background: #e5534b; }
+  .cell.wrong { background: #e9a23b; }
+  .n1{color:#1976d2}.n2{color:#388e3c}.n3{color:#d32f2f}.n4{color:#303f9f}
+  .n5{color:#8d2a2a}.n6{color:#00838f}.n7{color:#222}.n8{color:#666}
+  #msg { margin-top: 12px; height: 24px; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Minesweeper</h1>
+<div class="bar">
+  <select id="level">
+    <option value="9,9,10">Beginner (9×9)</option>
+    <option value="16,16,40">Intermediate (16×16)</option>
+    <option value="30,16,99">Expert (30×16)</option>
+  </select>
+  <div class="panel" id="mines">010</div>
+  <button id="reset">🙂 New game</button>
+  <div class="panel" id="time">000</div>
+</div>
+<div id="board"></div>
+<div id="msg">Left-click to reveal · Right-click (or long-press) to flag</div>
+
+<script>
+let W, H, M, grid, started, over, flags, revealed, timer, seconds;
+const $ = id => document.getElementById(id);
+const boardEl = $('board');
+
+function init() {
+  [W, H, M] = $('level').value.split(',').map(Number);
+  grid = Array.from({length: H}, () => Array.from({length: W}, () => ({mine: false, open: false, flag: false, n: 0})));
+  started = over = false; flags = 0; revealed = 0; seconds = 0;
+  clearInterval(timer);
+  $('time').textContent = '000';
+  $('reset').textContent = '🙂 New game';
+  $('msg').textContent = 'Left-click to reveal · Right-click (or long-press) to flag';
+  boardEl.style.gridTemplateColumns = `repeat(${W}, 30px)`;
+  boardEl.innerHTML = '';
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const el = document.createElement('div');
+    el.className = 'cell';
+    el.dataset.x = x; el.dataset.y = y;
+    boardEl.appendChild(el);
+  }
+  updateMines();
+}
+
+const cellEl = (x, y) => boardEl.children[y * W + x];
+const neighbors = (x, y) => {
+  const out = [];
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const nx = x + dx, ny = y + dy;
+    if ((dx || dy) && nx >= 0 && ny >= 0 && nx < W && ny < H) out.push([nx, ny]);
+  }
+  return out;
+};
+const updateMines = () => $('mines').textContent = String(Math.max(M - flags, 0)).padStart(3, '0');
+
+function placeMines(sx, sy) {
+  const safe = new Set([sx + ',' + sy, ...neighbors(sx, sy).map(([a, b]) => a + ',' + b)]);
+  let placed = 0;
+  while (placed < M) {
+    const x = Math.floor(Math.random() * W), y = Math.floor(Math.random() * H);
+    if (grid[y][x].mine || safe.has(x + ',' + y)) continue;
+    grid[y][x].mine = true; placed++;
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    grid[y][x].n = neighbors(x, y).filter(([a, b]) => grid[b][a].mine).length;
+  started = true;
+  timer = setInterval(() => { seconds = Math.min(seconds + 1, 999); $('time').textContent = String(seconds).padStart(3, '0'); }, 1000);
+}
+
+function reveal(x, y) {
+  const c = grid[y][x];
+  if (c.open || c.flag) return;
+  c.open = true; revealed++;
+  const el = cellEl(x, y);
+  el.classList.add('open');
+  if (c.mine) { el.classList.add('mine'); el.textContent = '💣'; return lose(); }
+  if (c.n) { el.textContent = c.n; el.classList.add('n' + c.n); }
+  else neighbors(x, y).forEach(([a, b]) => reveal(a, b));
+}
+
+function click(x, y) {
+  if (over) return;
+  if (!started) placeMines(x, y);
+  reveal(x, y);
+  checkWin();
+}
+
+function chord(x, y) {
+  const c = grid[y][x];
+  if (!c.open || !c.n) return;
+  const nb = neighbors(x, y);
+  if (nb.filter(([a, b]) => grid[b][a].flag).length !== c.n) return;
+  nb.forEach(([a, b]) => reveal(a, b));
+  checkWin();
+}
+
+function flag(x, y) {
+  if (over || !started && false) return;
+  const c = grid[y][x];
+  if (c.open) return;
+  c.flag = !c.flag;
+  flags += c.flag ? 1 : -1;
+  cellEl(x, y).textContent = c.flag ? '🚩' : '';
+  updateMines();
+}
+
+function lose() {
+  over = true; clearInterval(timer);
+  $('reset').textContent = '😵 Try again';
+  $('msg').textContent = 'Boom! You hit a mine.';
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = grid[y][x], el = cellEl(x, y);
+    if (c.mine && !c.flag && !c.open) { el.classList.add('open', 'mine'); el.textContent = '💣'; }
+    else if (!c.mine && c.flag) { el.classList.add('wrong'); el.textContent = '❌'; }
+  }
+}
+
+function checkWin() {
+  if (over || revealed !== W * H - M) return;
+  over = true; clearInterval(timer);
+  $('reset').textContent = '😎 Play again';
+  $('msg').textContent = `You win! Time: ${seconds}s`;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    if (grid[y][x].mine && !grid[y][x].flag) { grid[y][x].flag = true; cellEl(x, y).textContent = '🚩'; }
+  flags = M; updateMines();
+}
+
+boardEl.addEventListener('click', e => {
+  const t = e.target.closest('.cell'); if (!t) return;
+  const x = +t.dataset.x, y = +t.dataset.y;
+  grid[y][x].open ? (!over && chord(x, y)) : click(x, y);
+});
+boardEl.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const t = e.target.closest('.cell'); if (t) flag(+t.dataset.x, +t.dataset.y);
+});
+// long-press to flag on touch
+let pressTimer;
+boardEl.addEventListener('touchstart', e => {
+  const t = e.target.closest('.cell'); if (!t) return;
+  pressTimer = setTimeout(() => { flag(+t.dataset.x, +t.dataset.y); t.dataset.long = 1; }, 450);
+});
+boardEl.addEventListener('touchend', e => {
+  clearTimeout(pressTimer);
+  const t = e.target.closest('.cell');
+  if (t && t.dataset.long) { delete t.dataset.long; e.preventDefault(); }
+});
+$('reset').addEventListener('click', init);
+$('level').addEventListener('change', init);
+init();
+</script>
+</body>
+</html>
